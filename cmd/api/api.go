@@ -22,8 +22,10 @@ type dbConfig struct {
 }
 
 type config struct {
-	addr string
-	db   dbConfig
+	addr    string
+	db      dbConfig
+	env     string
+	version string
 }
 
 func (app *application) mount() *chi.Mux {
@@ -36,10 +38,10 @@ func (app *application) mount() *chi.Mux {
 		reqId := middleware.GetReqID(r.Context())
 		w.Write([]byte(reqId))
 	})
-
-	r.Route("/api", func(r chi.Router) {
+	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
 	})
+
 	return r
 }
 

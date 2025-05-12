@@ -12,15 +12,15 @@ import (
 )
 
 func main() {
-	// Get the executable's directory
-	exe, err := os.Executable()
+	workingDir, err := os.Getwd()
 	if err != nil {
-		log.Fatal("Failed to get executable path:", err)
+		log.Fatal("Failed to get working directory:", err)
 	}
-	exeDir := filepath.Dir(exe)
+	log.Printf("Working directory: %s", workingDir)
 
-	// Look for .env in the project root (two levels up from executable)
-	envPath := filepath.Join(exeDir, "..", "..", ".env")
+	// Navigate to the .env file based on the working directory
+	envPath := filepath.Join(workingDir, "..", "..", ".env") // Adjust based on your directory structure
+	log.Printf("Looking for .env at: %s", envPath)
 	if err := godotenv.Load(envPath); err != nil {
 		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
 	}
@@ -30,9 +30,9 @@ func main() {
 		log.Fatal("DB_DSN environment variable is not set")
 	}
 	log.Printf("Using database connection string: %s", dsn)
-
 	cfg := config{
-		addr: env.GetString("ADDR", ":8080"),
+		addr:    env.GetString("ADDR", ":8080"),
+		version: env.GetString("VERSION", "1.0.0"),
 		db: dbConfig{
 			dsn:          dsn,
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 25),
