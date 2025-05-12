@@ -12,6 +12,13 @@ func writeJSON(w http.ResponseWriter, status int, data any) error {
 	return json.NewEncoder(w).Encode(data)
 }
 
+func (app *application) writeJSONErrorResponse(w http.ResponseWriter, status int, err error) {
+	type errorResponse struct {
+		Error string `json:"error"`
+	}
+	writeJSON(w, status, errorResponse{Error: err.Error()})
+}
+
 func readJSON(r *http.Request, data any) error {
 	// maxBytes := 1_048_576 // 1 MB
 	// r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))

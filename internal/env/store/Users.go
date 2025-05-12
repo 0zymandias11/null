@@ -23,13 +23,17 @@ func NewUserStore(db *sql.DB) *UserStore {
 }
 
 func (s *UserStore) Create(ctx context.Context, user *User) error {
-	query := `Insert into users (email, password, username) values ($1, $2, $3) returning id, created_at, updated_at	`
+	query := `INSERT INTO users (email, password, username) 
+              VALUES ($1, $2, $3) 
+              RETURNING id, created_at, updated_at`
+
 	err := s.db.QueryRowContext(ctx,
 		query,
 		user.Email,
 		user.Password,
 		user.Username,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+
 	if err != nil {
 		return err
 	}
