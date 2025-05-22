@@ -49,7 +49,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-
+	log.Default().Printf("Connected to database: %s", cfg.db.dsn)
 	store := store.NewPostgresStorage(db)
 
 	app := &application{

@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 )
-var(
-	ErrNotFound = errors.New("record not found")
+
+var (
+	ErrNotFound  = errors.New("record not found")
 	ErrDuplicate = errors.New("duplicate record")
 )
 
@@ -18,11 +19,15 @@ type Storage struct {
 	Users interface {
 		Create(ctx context.Context, user *User) error
 	}
+	Comments interface {
+		GetPostById(ctx context.Context, postID int64) ([]*Comment, error)
+	}
 }
 
 func NewPostgresStorage(db *sql.DB) Storage {
 	return Storage{
-		Posts: &PostStore{db},
-		Users: &UserStore{db},
+		Posts:    &PostStore{db},
+		Users:    &UserStore{db},
+		Comments: &CommentsStore{db},
 	}
 }
