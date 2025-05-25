@@ -59,3 +59,41 @@ func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 
 	return post, nil
 }
+
+func (s *PostStore) Delete(ctx context.Context, postID int64) error{
+	query := "Delete from posts where id = $1"
+	_, err:= s.db.ExecContext(ctx, query, postID)
+	if( err != nil) {
+		switch{
+			case errors.Is(err, sql.ErrNoRows):
+				return ErrNotFound	
+			default:
+				return err
+		}
+	}
+	return nil
+}
+
+func (s *PostStore) Put(ctx context.Context, postID int64, post *Post) (*Post, error){
+	query := `UPDATE posts SET title = $1, content = $2, user_id = $3, tags = $4, updated_at = NOW() WHERE id = $5 RETURNING id, created_at, updated_at`
+	
+	err := s.db.QueryRowContext(ctx,
+		query,
+		post.Title,
+		post.Content,
+		post.UserID,
+		pq.Array(post.Tags),
+		postID,
+	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return post, nil
+}

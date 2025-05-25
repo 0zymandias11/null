@@ -69,3 +69,40 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam := chi.URLParam(r, "postID")
+	postID, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+	if err := app.store.Posts.Delete(ctx, postID); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idParam := chi.URLParam(r, "postID")
+	postID, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+	post := &store.Post{}
+	post, err = app.store.Posts.Put(ctx, postID, post)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+	if err := writeJSON(w, http.StatusOK, post); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+}
