@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
+
 type mockPostStore struct {
 	CreateFn  func(ctx context.Context, post *store.Post) error
 	GetByIDFn func(ctx context.Context, postID int64) (*store.Post, error)
@@ -43,6 +44,10 @@ type mockCommentsStore struct{}
 
 func (m *mockCommentsStore) GetPostById(ctx context.Context, postID int64) ([]*store.Comment, error) {
 	return []*store.Comment{}, nil
+}
+
+func (m *mockCommentsStore) Create(ctx context.Context, comment *store.Comment) error {
+	return nil
 }
 
 func TestCreatePostHandler(t *testing.T) {
@@ -99,12 +104,12 @@ func TestDeletePostHandler(t *testing.T) {
 	}
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/posts/1", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	// Set chi URLParam for postID
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("postID", "1")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
-	
+
 	app.deletePostHandler(recorder, req)
 	assert.Equal(t, http.StatusOK, recorder.Code)
 }
@@ -119,7 +124,7 @@ func TestUpdatePostHandler(t *testing.T) {
 			},
 		},
 	}
-	
+
 	payload := UpdatePostPayload{
 		Title:   "Updated",
 		Content: "Updated Content",
@@ -127,12 +132,12 @@ func TestUpdatePostHandler(t *testing.T) {
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/posts/1", bytes.NewReader(body))
 	recorder := httptest.NewRecorder()
-	
+
 	// Set chi URLParam for postID
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("postID", "1")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
-	
+
 	app.updatePostHandler(recorder, req)
 	assert.Equal(t, http.StatusOK, recorder.Code)
 }

@@ -10,14 +10,15 @@ import (
 )
 
 type Post struct {
-	ID        int64     `json:"id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	UserID    int64     `json:"user_id"`
-	Tags      []string  `json:"tags"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Comments  []*Comment  `json:"comments"`
+	ID        int64      `json:"id"`
+	Title     string     `json:"title"`
+	Content   string     `json:"content"`
+	UserID    int64      `json:"user_id"`
+	Tags      []string   `json:"tags"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	Comments  []*Comment `json:"comments"`
+	Version   int        `json:"version"`
 }
 
 type PostStore struct {
@@ -60,30 +61,40 @@ func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 	return post, nil
 }
 
-func (s *PostStore) Delete(ctx context.Context, postID int64) error{
+func (s *PostStore) Delete(ctx context.Context, postID int64) error {
 	query := "Delete from posts where id = $1"
-	_, err:= s.db.ExecContext(ctx, query, postID)
-	if( err != nil) {
-		switch{
-			case errors.Is(err, sql.ErrNoRows):
-				return ErrNotFound	
-			default:
-				return err
+	res, err := s.db.ExecContext(ctx, query, postID)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrNotFound
+		default:
+			return err
 		}
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return ErrNotFound
 	}
 	return nil
 }
 
-func (s *PostStore) Put(ctx context.Context, postID int64, post *Post) (*Post, error){
-	query := `UPDATE posts SET title = $1, content = $2, user_id = $3, tags = $4, updated_at = NOW() WHERE id = $5 RETURNING id, created_at, updated_at`
-	
-	err := s.db.QueryRowContext(ctx,
+func (s *PostStore) Put(ctx context.Context, postID int64, post *Post) (*Post, error) {
+	query := `UPDATE posts SET title = $1, content = $2, user_id = $3, tags = $4, updated_at = NOW() WHERE id = $5 AND version = $6 RETURNING id, created_at, updated_at`
+
+	err := s.db.QueryRowContext(ctx, 
 		query,
 		post.Title,
 		post.Content,
 		post.UserID,
 		pq.Array(post.Tags),
 		postID,
+		post.Version,
 	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
 
 	if err != nil {
