@@ -16,6 +16,8 @@ type Comment struct {
 	PostID    int64     `json:"post_id"`
 	UserID    int64     `json:"user_id"`
 	Content   string    `json:"content"`
+	Likes     int64     `json:"likes"`
+	Dislikes  int64     `json:"dislikes"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -40,7 +42,8 @@ func (s *CommentsStore) GetPostById(ctx context.Context, postID int64) ([]*Comme
 	defer rows.Close()
 	for rows.Next() {
 		comment := &Comment{}
-		err = rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Content, &comment.CreatedAt)
+		err = rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Content,
+			&comment.CreatedAt, &comment.Likes, &comment.Dislikes)
 		if err != nil {
 			return nil, err
 		}

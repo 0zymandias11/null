@@ -15,6 +15,8 @@ type Post struct {
 	Content   string     `json:"content"`
 	UserID    int64      `json:"user_id"`
 	Tags      []string   `json:"tags"`
+	Likes     int64      `json:"likes"`
+	Dislikes  int64      `json:"dislikes"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	Comments  []*Comment `json:"comments"`
@@ -48,7 +50,7 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 	query := "SELECT * from posts where id =$1"
 	post := &Post{}
-	err := s.db.QueryRowContext(ctx, query, postID).Scan(&post.ID, &post.Title, &post.Content, &post.UserID, pq.Array(&post.Tags), &post.CreatedAt, &post.UpdatedAt)
+	err := s.db.QueryRowContext(ctx, query, postID).Scan(&post.ID, &post.Title, &post.Content, &post.UserID, pq.Array(&post.Tags), &post.CreatedAt, &post.UpdatedAt, &post.Likes, &post.Dislikes, &post.Version)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -87,7 +89,7 @@ func (s *PostStore) Delete(ctx context.Context, postID int64) error {
 func (s *PostStore) Put(ctx context.Context, postID int64, post *Post) (*Post, error) {
 	query := `UPDATE posts SET title = $1, content = $2, user_id = $3, tags = $4, updated_at = NOW() WHERE id = $5 AND version = $6 RETURNING id, created_at, updated_at`
 
-	err := s.db.QueryRowContext(ctx, 
+	err := s.db.QueryRowContext(ctx,
 		query,
 		post.Title,
 		post.Content,

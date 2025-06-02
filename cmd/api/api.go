@@ -41,14 +41,23 @@ func (app *application) mount() *chi.Mux {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
 		r.Post("/posts", app.createPostHandler)
-		r.Post("/users", app.createUserHandler)
+		r.Route("/users", func(r chi.Router) {
+			// r.Get("/", app.getUsersHandler)
+			r.Post("/", app.createUserHandler)
+			r.Get("/{userID}", app.getUserHandler)
+			// r.Delete("/{userID}", app.deleteUserHandler)
+			r.Put("/{userID}", app.updateUserHandler)
+			// r.Post("/{userID}/posts", app.getUserPostsHandler)
+		})
+
 		r.Route("/{postID}", func(r chi.Router) {
 			r.Get("/", app.getPostHandler)
 			r.Put("/", app.updatePostHandler)
 			r.Delete("/", app.deletePostHandler)
+			r.Get("/comments", app.getCommentsHandler)
+			r.Post("/comments", app.createCommentsHandler)
 		})
 	})
-
 	return r
 }
 

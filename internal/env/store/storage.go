@@ -20,6 +20,8 @@ type Storage struct {
 	}
 	Users interface {
 		Create(ctx context.Context, user *User) error
+		Put(ctx context.Context, user *User) (*User, error)
+		Get(ctx context.Context, handle string) (*User, error)
 	}
 	Comments interface {
 		Create(ctx context.Context, comment *Comment) error
