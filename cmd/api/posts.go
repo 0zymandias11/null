@@ -38,7 +38,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	// Assuming postID is passed as a query parameter
+	// postID is obtained from the URL path parameter
 	idParam := chi.URLParam(r, "postID")
 	postID, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
