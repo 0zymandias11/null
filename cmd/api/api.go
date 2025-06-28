@@ -24,7 +24,7 @@ type dbConfig struct {
 type config struct {
 	addr    string
 	db      dbConfig
-	env     string
+	//env     string
 	version string
 }
 
@@ -47,7 +47,13 @@ func (app *application) mount() *chi.Mux {
 			r.Get("/{userID}", app.getUserHandler)
 			// r.Delete("/{userID}", app.deleteUserHandler)
 			r.Put("/{userID}", app.updateUserHandler)
+
+			r.Post("/{userID}/follow", app.followUserHandler)
 			// r.Post("/{userID}/posts", app.getUserPostsHandler)
+
+			r.Group(func(r chi.Router){
+				r.Get("/feed", app.getUserFeedHandler)
+			})
 		})
 
 		r.Route("/{postID}", func(r chi.Router) {

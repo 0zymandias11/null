@@ -21,6 +21,12 @@ type Post struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 	Comments  []*Comment `json:"comments"`
 	Version   int        `json:"version"`
+	User      User       `json:"user"`
+}
+
+type PostsWithMetadata struct {
+	Post
+	CommentCount int `json:"comment_count"`
 }
 
 type PostStore struct {
@@ -32,15 +38,25 @@ func NewPostStore(db *sql.DB) *PostStore {
 }
 
 func (s *PostStore) Create(ctx context.Context, post *Post) error {
-	query := `INSERT INTO posts (title, content,user_id, tags) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`
+	query := `INSERT INTO posts (title, content, user_id, tags, likes, dislikes)
+              VALUES ($1, $2, $3, $4, $5, $6)
+              ON CONFLICT (title, user_id) DO NOTHING
+              RETURNING id, created_at, updated_at`
+
 	err := s.db.QueryRowContext(ctx,
 		query,
 		post.Title,
 		post.Content,
 		post.UserID,
 		pq.Array(post.Tags),
+		post.Likes,
+		post.Dislikes,
 	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
 
+	if err == sql.ErrNoRows {
+		// Post already exists, treat as success for seeding
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -109,4 +125,42 @@ func (s *PostStore) Put(ctx context.Context, postID int64, post *Post) (*Post, e
 	}
 
 	return post, nil
+}
+
+func (s *PostStore) GetUserFeed(ctx context.Context, userID int64, fq PaginatedFeedQuery) ([]PostsWithMetadata, error) {
+	query := `p.id, p.user_id, p.title, p.content, p.tags, p.likes, p.dislikes, p.created_at, p.updated_at, p.version, count(c.id) 
+				as comment_count from posts p left join comments c on c.post_id = p.id left join 
+				users u on u.id = p.user_id 
+				join
+				followers f 
+				ON f.follower_id = p.user_id OR p.user_id = $1
+				where f.user_id = $1 or p.user_id = $1
+				and p.deleted_at is null and p.version > 0 
+				group by p.id, u.username 
+				order by p.created_at` + fq.Sort +
+				`LIMIT $2 OFFSET $3`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	rows, err := s.db.QueryContext(ctx, query, userID, fq.Limit, fq.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []PostsWithMetadata
+	for rows.Next() {
+		var post PostsWithMetadata
+		if err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Content, pq.Array(&post.Tags), &post.Likes, &post.Dislikes, &post.CreatedAt, &post.UpdatedAt, &post.Version, &post.CommentCount); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }

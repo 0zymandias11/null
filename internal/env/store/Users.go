@@ -43,10 +43,12 @@ func (s *UserStore) Get(ctx context.Context, handle string) (*User, error) {
 }
 
 func (s *UserStore) Create(ctx context.Context, user *User) error {
-	query := `INSERT INTO users (email, password, username) 
-              VALUES ($1, $2, $3) 
+	query := `INSERT INTO users (email, password, username)
+              VALUES ($1, $2, $3)
+              ON CONFLICT (email) DO NOTHING
               RETURNING id, created_at, updated_at`
 
+	// Try to insert, but if the user already exists, just return nil (no error)
 	err := s.db.QueryRowContext(ctx,
 		query,
 		user.Email,
@@ -54,6 +56,10 @@ func (s *UserStore) Create(ctx context.Context, user *User) error {
 		user.Username,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 
+	if err == sql.ErrNoRows {
+		// User already exists, treat as success for seeding
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -82,4 +88,16 @@ func (s *UserStore) Put(ctx context.Context, user *User) (*User, error) {
 		}
 	}
 	return user, nil
+}
+
+func (s *UserStore) Follow(ctx context.Context, userID int64, followerUsername string) error {
+	query := `INSERT INTO followers (user_id, follower_username) 
+			  VALUES ($1, $2) 
+			  ON CONFLICT (user_id, follower_username) DO NOTHING`
+
+	_, err := s.db.ExecContext(ctx, query, userID, followerUsername)
+	if err != nil {
+		return err
+	}
+	return nil
 }

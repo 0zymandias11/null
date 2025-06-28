@@ -8,7 +8,7 @@ import (
 )
 
 type CommentsStore struct {
-	db *sql.DB
+	db *sql.DB 
 }
 
 type Comment struct {
