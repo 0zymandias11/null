@@ -1,14 +1,25 @@
+// Package main My Awesome API.
+//
+//     Schemes: http, https
+//     Host:     localhost:8080
+//     BasePath: /api/v1
+//     Version:  1.0
+//     Title:    Go Land API
+//     Description: This is a sample server for Go Land.
+//
+// swagger:meta
+
 package main
 
 import (
 	"log"
 	"os"
 	"path/filepath"
-
 	"example.com/Go_Land/internal/env"
 	"example.com/Go_Land/internal/env/db"
 	"example.com/Go_Land/internal/env/store"
 	"github.com/joho/godotenv"
+	_ "example.com/Go_Land/docs"
 )
 
 func main() {
@@ -58,6 +69,8 @@ func main() {
 	}
 
 	mux := app.mount()
+	// http.Handle("/swagger/", httpSwagger.WrapHandler)
+
 	log.Printf("Starting server on %s", cfg.addr)
 	if err := app.run(mux); err != nil {
 		log.Fatalf("Server error: %v", err)

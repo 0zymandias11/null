@@ -6,21 +6,28 @@ import (
 	"example.com/Go_Land/internal/env/store"
 )
 
+// GetUserFeedHandler godoc
+// @Summary      Get user feed
+// @Description  Get the feed for a user
+// @Tags         users
+// @Produce      json
+// @Success      200  {array}   store.Post
+// @Router       /api/v1/users/feed [get]
 func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Request) {
 
-	fq:= store.PaginatedFeedQuery{
-		Limit: 20,
+	fq := store.PaginatedFeedQuery{
+		Limit:  20,
 		Offset: 0,
-		Sort: "desc",
+		Sort:   "desc",
 	}
 
 	fq, err := fq.Parse(r)
-	if(err !=nil){
+	if err != nil {
 		app.badRequestResponse(w, r, err)
 	}
 
-	if err:= Validate.Struct(fq); err !=nil{
-		app.badRequestResponse(w,r,err)
+	if err := Validate.Struct(fq); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -33,6 +40,12 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 	}
 	if len(feed) == 0 {
 		app.writeJSONErrorResponse(w, http.StatusNotFound, nil)
+		return
+	}
+
+	err = writeJSON(w, http.StatusOK, feed)
+	if err != nil {
+		app.internalServerError(w, r, err)
 		return
 	}
 }
