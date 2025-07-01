@@ -1,18 +1,19 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"example.com/Go_Land/internal/env/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"go.uber.org/zap"
 )
 
 type application struct {
 	config config
 	store  store.Storage
+	logger *zap.SugaredLogger
 }
 
 type dbConfig struct {
@@ -73,7 +74,6 @@ func (app *application) run(mux *chi.Mux) error {
 		Handler: mux,
 	}
 
-	log.Printf("Server has started running at Port: %s", app.config.addr)
-
+	app.logger.Infow("server started at ", "addr", app.config.addr)
 	return srv.ListenAndServe()
 }

@@ -15,11 +15,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	_ "example.com/Go_Land/docs"
 	"example.com/Go_Land/internal/env"
 	"example.com/Go_Land/internal/env/db"
 	"example.com/Go_Land/internal/env/store"
 	"github.com/joho/godotenv"
-	_ "example.com/Go_Land/docs"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -27,7 +29,17 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to get working directory:", err)
 	}
+
 	log.Printf("Working directory: %s", workingDir)
+	//Logger
+	logger, err := zap.NewDevelopment()
+
+	if err != nil {
+		log.Fatalf("Failed to initialize zap-logger %v", err)
+	}
+
+	defer logger.Sync()
+	sugar := logger.Sugar()
 
 	// Navigate to the .env file based on the working directory
 	envPath := filepath.Join(workingDir, "..", "..", ".env") // Adjust based on your directory structure
@@ -51,6 +63,7 @@ func main() {
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "10m"),
 		},
 	}
+	defer logger.Sync()
 
 	db, err := db.New(cfg.db.dsn,
 		cfg.db.maxOpenConns,
@@ -60,12 +73,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+
+	logger.Info("Sugar Logs: database has connected")
+
 	log.Default().Printf("Connected to database: %s", cfg.db.dsn)
 	store := store.NewPostgresStorage(db)
 
 	app := &application{
 		config: cfg,
 		store:  store,
+		logger: sugar,
 	}
 
 	mux := app.mount()
