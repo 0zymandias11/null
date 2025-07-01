@@ -77,7 +77,7 @@ func main() {
 	logger.Info("Sugar Logs: database has connected")
 
 	log.Default().Printf("Connected to database: %s", cfg.db.dsn)
-	store := store.NewPostgresStorage(db)
+	store := store.NewPostgresStorage(db, sugar)
 
 	app := &application{
 		config: cfg,

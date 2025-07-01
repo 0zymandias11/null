@@ -8,6 +8,7 @@ import (
 	"example.com/Go_Land/internal/env/db"
 	"example.com/Go_Land/internal/env/store"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -17,6 +18,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
 	}
+
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatalf("Failed to initialize zap-logger %v", err)
+	}
+
+	defer logger.Sync()
+	sugar := logger.Sugar()
+	log.Println("Logger initialized")
+	// Initialize the database connection
 
 	addr := env.GetString("DB_DSN", "")
 	log.Println("Using database connection string:", addr)
@@ -28,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error connecting to the database: %v", err)
 	}
-	store := store.NewPostgresStorage(conn)
+	store := store.NewPostgresStorage(conn, sugar)
 	db.Seed(store)
 	log.Println("Database seeded successfully")
 }
