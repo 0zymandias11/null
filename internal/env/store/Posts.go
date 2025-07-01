@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 type Post struct {
@@ -30,11 +31,12 @@ type PostsWithMetadata struct {
 }
 
 type PostStore struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.SugaredLogger
 }
 
-func NewPostStore(db *sql.DB) *PostStore {
-	return &PostStore{db}
+func NewPostStore(db *sql.DB, logger *zap.SugaredLogger) *PostStore {
+	return &PostStore{db, logger}
 }
 
 func (s *PostStore) Create(ctx context.Context, post *Post) error {
@@ -54,12 +56,14 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
 
 	if err == sql.ErrNoRows {
-		// Post already exists, treat as success for seeding
+		s.logger.Infow("Post already exists (ON CONFLICT DO NOTHING)", "title", post.Title, "user_id", post.UserID)
 		return nil
 	}
 	if err != nil {
+		s.logger.Errorw("Failed to create post", "error", err, "title", post.Title, "user_id", post.UserID)
 		return err
 	}
+	s.logger.Infow("Post created", "id", post.ID, "title", post.Title, "user_id", post.UserID)
 	return nil
 }
 
@@ -138,7 +142,7 @@ func (s *PostStore) GetUserFeed(ctx context.Context, userID int64, fq PaginatedF
 				and p.deleted_at is null and p.version > 0 
 				group by p.id, u.username 
 				order by p.created_at` + fq.Sort +
-				`LIMIT $2 OFFSET $3`
+		`LIMIT $2 OFFSET $3`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

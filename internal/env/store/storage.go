@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"go.uber.org/zap"
 )
 
 var (
@@ -32,10 +34,10 @@ type Storage struct {
 	}
 }
 
-func NewPostgresStorage(db *sql.DB) Storage {
+func NewPostgresStorage(db *sql.DB, logger *zap.SugaredLogger) Storage {
 	return Storage{
-		Posts:    &PostStore{db},
-		Users:    &UserStore{db},
-		Comments: &CommentsStore{db},
+		Posts:    &PostStore{db, logger},
+		Users:    &UserStore{db, logger},
+		Comments: &CommentsStore{db, logger},
 	}
 }

@@ -8,7 +8,8 @@ import (
 )
 
 type CommentsStore struct {
-	db *sql.DB
+	db *sql.DB, 
+	logger *zap.SugaredLogger
 }
 
 type Comment struct {

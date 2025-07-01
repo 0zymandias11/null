@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type User struct {
@@ -17,10 +19,11 @@ type User struct {
 }
 type UserStore struct {
 	db *sql.DB
+	logger *zap.SugaredLogger
 }
 
-func NewUserStore(db *sql.DB) *UserStore {
-	return &UserStore{db}
+func NewUserStore(db *sql.DB, logger *zap.SugaredLogger) *UserStore {
+	return &UserStore{db, logger}
 }
 
 func (s *UserStore) Get(ctx context.Context, handle string) (*User, error) {
