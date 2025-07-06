@@ -47,18 +47,20 @@ func (app *application) mount() *chi.Mux {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
-		r.Post("/posts", app.createPostHandler)
+		r.Post("/posts", app.createPostHandler) //done
 		r.Route("/users", func(r chi.Router) {
-			r.Post("/", app.createUserHandler)
-			r.Get("/{userID}", app.getUserHandler)
+			r.Post("/", app.createUserHandler)     //done
+			r.Get("/{userID}", app.getUserHandler) //done
 			r.Put("/{userID}", app.updateUserHandler)
 			r.Post("/{userID}/follow", app.followUserHandler)
+			//add handler for user follows
+			// add handler for user followed by
 			r.Group(func(r chi.Router) {
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 		})
 		r.Route("/{postID}", func(r chi.Router) {
-			r.Get("/", app.getPostHandler)
+			r.Get("/", app.getPostHandler) //done
 			r.Put("/", app.updatePostHandler)
 			r.Delete("/", app.deletePostHandler)
 			r.Get("/comments", app.getCommentsHandler)

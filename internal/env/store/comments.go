@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type CommentsStore struct {
-	db *sql.DB, 
+	db     *sql.DB
 	logger *zap.SugaredLogger
 }
 

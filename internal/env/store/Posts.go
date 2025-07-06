@@ -42,7 +42,6 @@ func NewPostStore(db *sql.DB, logger *zap.SugaredLogger) *PostStore {
 func (s *PostStore) Create(ctx context.Context, post *Post) error {
 	query := `INSERT INTO posts (title, content, user_id, tags, likes, dislikes)
               VALUES ($1, $2, $3, $4, $5, $6)
-              ON CONFLICT (title, user_id) DO NOTHING
               RETURNING id, created_at, updated_at`
 
 	err := s.db.QueryRowContext(ctx,
@@ -56,7 +55,7 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
 
 	if err == sql.ErrNoRows {
-		s.logger.Infow("Post already exists (ON CONFLICT DO NOTHING)", "title", post.Title, "user_id", post.UserID)
+		s.logger.Infow("Post already exists", "title", post.Title, "user_id", post.UserID)
 		return nil
 	}
 	if err != nil {

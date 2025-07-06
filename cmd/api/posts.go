@@ -9,7 +9,7 @@ import (
 )
 
 type CreatePostPayload struct {
-	Title   string `json:"title" validate:"required, max=200"`
+	Title   string `json:"title" validate:"required"`
 	Content string `json:"content" validate:"required"`
 	UserID  int64  `json:"user_id" validate:"required"`
 }

@@ -18,7 +18,7 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 type UserStore struct {
-	db *sql.DB
+	db     *sql.DB
 	logger *zap.SugaredLogger
 }
 
@@ -27,12 +27,12 @@ func NewUserStore(db *sql.DB, logger *zap.SugaredLogger) *UserStore {
 }
 
 func (s *UserStore) Get(ctx context.Context, handle string) (*User, error) {
-	query := `Select * from users where username = $1 or email = $1`
+	query := `Select users.Email, users.ID, users.Username from users where username = $1 or email = $1`
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, handle).Scan(
+		&user.Email,
 		&user.ID,
 		&user.Username,
-		&user.Email,
 	)
 	if err != nil {
 		switch {

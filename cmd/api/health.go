@@ -27,6 +27,7 @@ func (app *application) writeJSONError(w http.ResponseWriter, status int, err er
 	data := map[string]string{
 		"error": err.Error(),
 	}
+	log.Printf("Error: %s, Status: %d", err.Error(), status)
 	if err := writeJSON(w, status, data); err != nil {
 		log.Fatal("Failed to write JSON error response:", err)
 		// Handle the error as needed, e.g., log it or return an error response

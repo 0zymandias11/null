@@ -34,6 +34,6 @@ func (app *application) notFound(w http.ResponseWriter, r *http.Request, err err
 		"path", r.URL.Path,
 		"error", err,
 	)
-	app.writeJSONError(w, http.StatusNotFound, errors.New("the requested resource was not found"))
+	app.writeJSONError(w, http.StatusNotFound, err)
 
 }
