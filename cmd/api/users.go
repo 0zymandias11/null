@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
@@ -13,6 +14,15 @@ type CreateUserPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Username string `json:"username"`
+}
+
+func (app *application) hashedPassword(user **store.User, password string) error {
+	// Set the password for the user using the Password field's Set method
+	// This method should handle hashing and validation of the password
+	if err := (*user).Password.Set(password); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateUserHandler godoc
@@ -33,14 +43,30 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 
 	user := &store.User{
 		Email:    payload.Email,
-		Password: payload.Password,
 		Username: payload.Username,
 	}
 
-	if err := app.store.Users.Create(r.Context(), user); err != nil {
-		app.writeJSONError(w, http.StatusInternalServerError, err)
+	err := app.hashedPassword(&user, payload.Password)
+	app.logger.Infoln("Creating User", "user:", user.Username, "email", user.Email, "Password: ", user.Password)
+	if err != nil {
+		app.writeJSONError(w, http.StatusInternalServerError, errors.New("failed to set password"))
 		return
 	}
+	txErr := withTx(app.dbConnector, r.Context(), func(tx *sql.Tx) error {
+		if err := app.store.Users.Create(r.Context(), tx, user); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		app.writeJSONError(w, http.StatusInternalServerError, txErr)
+		return
+	}
+	// if err := app.store.Users.Create(r.Context(), user); err != nil {
+	// 	app.writeJSONError(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	if err := writeJSON(w, http.StatusCreated, user); err != nil {
 		app.writeJSONError(w, http.StatusInternalServerError, err)
@@ -72,12 +98,17 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 
 	user := &store.User{
 		Email:    payload.Email,
-		Password: payload.Password,
 		Username: payload.Username,
 	}
 
-	if _, err := app.store.Users.Put(r.Context(), user); err != nil {
-		app.writeJSONError(w, http.StatusInternalServerError, err)
+	txErr := withTx(app.dbConnector, r.Context(), func(tx *sql.Tx) error {
+		if _, err := app.store.Users.Put(r.Context(), tx, user); err != nil {
+			return err
+		}
+		return nil
+	})
+	if txErr != nil {
+		app.writeJSONError(w, http.StatusInternalServerError, txErr)
 		return
 	}
 
@@ -103,6 +134,7 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := app.store.Users.Get(r.Context(), handle)
+
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			app.writeJSONError(w, http.StatusNotFound, err)
@@ -137,14 +169,16 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 		app.writeJSONError(w, http.StatusBadRequest, err)
 		return
 	}
-	if payload.Username != "" {
-		if err := app.store.Users.Follow(r.Context(), handle, payload.Username); err != nil {
-			app.writeJSONError(w, http.StatusInternalServerError, err)
-			return
-		}
 
-		if err := writeJSON(w, http.StatusOK, map[string]string{"status": "followed"}); err != nil {
-			app.writeJSONError(w, http.StatusInternalServerError, err)
+	if payload.Username != "" {
+		txErr := withTx(app.dbConnector, r.Context(), func(tx *sql.Tx) error {
+			if err := app.store.Users.Follow(r.Context(), tx, handle, payload.Username); err != nil {
+				return err
+			}
+			return nil
+		})
+		if txErr != nil {
+			app.writeJSONError(w, http.StatusInternalServerError, txErr)
 			return
 		}
 	}

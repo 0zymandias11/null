@@ -35,16 +35,13 @@ type PostStore struct {
 	logger *zap.SugaredLogger
 }
 
-func NewPostStore(db *sql.DB, logger *zap.SugaredLogger) *PostStore {
-	return &PostStore{db, logger}
-}
 
-func (s *PostStore) Create(ctx context.Context, post *Post) error {
+func (s *PostStore) Create(ctx context.Context, tx *sql.Tx, post *Post) error {
 	query := `INSERT INTO posts (title, content, user_id, tags, likes, dislikes)
               VALUES ($1, $2, $3, $4, $5, $6)
               RETURNING id, created_at, updated_at`
 
-	err := s.db.QueryRowContext(ctx,
+	err := tx.QueryRowContext(ctx,
 		query,
 		post.Title,
 		post.Content,
@@ -82,9 +79,9 @@ func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 	return post, nil
 }
 
-func (s *PostStore) Delete(ctx context.Context, postID int64) error {
+func (s *PostStore) Delete(ctx context.Context, tx *sql.Tx, postID int64) error {
 	query := "Delete from posts where id = $1"
-	res, err := s.db.ExecContext(ctx, query, postID)
+	res, err := tx.ExecContext(ctx, query, postID)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -105,10 +102,10 @@ func (s *PostStore) Delete(ctx context.Context, postID int64) error {
 	return nil
 }
 
-func (s *PostStore) Put(ctx context.Context, postID int64, post *Post) (*Post, error) {
+func (s *PostStore) Put(ctx context.Context, tx *sql.Tx, postID int64, post *Post) (*Post, error) {
 	query := `UPDATE posts SET title = $1, content = $2, user_id = $3, tags = $4, updated_at = NOW() WHERE id = $5 AND version = $6 RETURNING id, created_at, updated_at`
 
-	err := s.db.QueryRowContext(ctx,
+	err := tx.QueryRowContext(ctx,
 		query,
 		post.Title,
 		post.Content,

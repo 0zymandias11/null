@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 
@@ -42,8 +43,14 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		UserID:  payload.UserID,
 	}
 
-	if err := app.store.Posts.Create(r.Context(), post); err != nil {
-		app.internalServerError(w, r, err)
+	txErr := withTx(app.dbConnector, r.Context(), func(tx *sql.Tx) error {
+		if err := app.store.Posts.Create(r.Context(), tx, post); err != nil {
+			return err
+		}
+		return nil
+	})
+	if txErr != nil {
+		app.internalServerError(w, r, txErr)
 		return
 	}
 	if err := writeJSON(w, http.StatusCreated, post); err != nil {
@@ -104,10 +111,17 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 		app.internalServerError(w, r, err)
 		return
 	}
-	if err := app.store.Posts.Delete(ctx, postID); err != nil {
-		app.internalServerError(w, r, err)
+	txErr := withTx(app.dbConnector, ctx, func(tx *sql.Tx) error {
+		if err := app.store.Posts.Delete(ctx, tx, postID); err != nil {
+			return err
+		}
+		return nil
+	})
+	if txErr != nil {
+		app.internalServerError(w, r, txErr)
 		return
 	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -131,13 +145,23 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	post := &store.Post{}
-	post, err = app.store.Posts.Put(ctx, postID, post)
-	if err != nil {
-		app.internalServerError(w, r, err)
+
+	txErr := withTx(app.dbConnector, ctx, func(tx *sql.Tx) error {
+		post, err = app.store.Posts.Put(ctx, tx, postID, post)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return err
+		}
+		if err := writeJSON(w, http.StatusOK, post); err != nil {
+			app.internalServerError(w, r, err)
+			return err
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		app.internalServerError(w, r, txErr)
 		return
 	}
-	if err := writeJSON(w, http.StatusOK, post); err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
+
 }

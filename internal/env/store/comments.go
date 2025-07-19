@@ -24,9 +24,9 @@ type Comment struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (s *CommentsStore) Create(ctx context.Context, comment *Comment) error {
+func (s *CommentsStore) Create(ctx context.Context, tx *sql.Tx, comment *Comment) error {
 	query := "INSERT INTO comments (post_id, user_id, content) VALUES ($1, $2, $3) RETURNING id, created_at"
-	err := s.db.QueryRowContext(ctx, query, comment.PostID, comment.UserID, comment.Content).Scan(&comment.ID, &comment.CreatedAt)
+	err := tx.QueryRowContext(ctx, query, comment.PostID, comment.UserID, comment.Content).Scan(&comment.ID, &comment.CreatedAt)
 	return err
 }
 

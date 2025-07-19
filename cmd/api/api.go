@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
 
 	"example.com/Go_Land/internal/env/store"
@@ -14,6 +15,7 @@ type application struct {
 	config config
 	store  store.Storage
 	logger *zap.SugaredLogger
+	dbConnector *sql.DB
 }
 
 type dbConfig struct {
@@ -27,7 +29,8 @@ type config struct {
 	addr string
 	db   dbConfig
 	//env     string
-	version string
+	version   string
+	jwtSecret string
 }
 
 func (app *application) mount() *chi.Mux {
@@ -46,6 +49,7 @@ func (app *application) mount() *chi.Mux {
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/login", app.loginUserHandler) //done
 		r.Get("/health", app.healthCheckHandler)
 		r.Post("/posts", app.createPostHandler) //done
 		r.Route("/users", func(r chi.Router) {
@@ -65,6 +69,9 @@ func (app *application) mount() *chi.Mux {
 			r.Delete("/", app.deletePostHandler)
 			r.Get("/comments", app.getCommentsHandler)
 			r.Post("/comments", app.createCommentsHandler)
+		})
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/user", app.registerUserHandler)
 		})
 	})
 	return r

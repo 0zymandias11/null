@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 
@@ -43,12 +44,21 @@ func (app *application) createCommentsHandler(w http.ResponseWriter, r *http.Req
 		UserID:  payload.UserID,
 		// Assuming CreatedAt and UpdatedAt are handled by the store
 	}
-	if err := app.store.Comments.Create(r.Context(), comment); err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-	if err := writeJSON(w, http.StatusCreated, comment); err != nil {
-		app.internalServerError(w, r, err)
+
+	txErr := withTx(app.dbConnector, r.Context(), func(tx *sql.Tx) error {
+		if err := app.store.Comments.Create(r.Context(), tx, comment); err != nil {
+			app.internalServerError(w, r, err)
+			return err
+		}
+		if err := writeJSON(w, http.StatusCreated, comment); err != nil {
+			app.internalServerError(w, r, err)
+			return err
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		app.internalServerError(w, r, txErr)
 		return
 	}
 }

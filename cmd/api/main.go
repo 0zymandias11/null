@@ -53,6 +53,8 @@ func main() {
 		log.Fatal("DB_DSN environment variable is not set")
 	}
 	log.Printf("Using database connection string: %s", dsn)
+
+	secret := env.GetString("JWT_SECRET", "GET RAILED DICK_BRAIN")
 	cfg := config{
 		addr:    env.GetString("ADDR", ":8080"),
 		version: env.GetString("VERSION", "1.0.0"),
@@ -62,7 +64,9 @@ func main() {
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 25),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "10m"),
 		},
+		jwtSecret: secret,
 	}
+
 	defer logger.Sync()
 
 	db, err := db.New(cfg.db.dsn,
@@ -83,9 +87,12 @@ func main() {
 		config: cfg,
 		store:  store,
 		logger: sugar,
+		dbConnector:     db,
 	}
 
 	mux := app.mount()
+
+	log.Default().Printf("Using JWT SECRET: %s", app.config.jwtSecret)
 	// http.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	log.Printf("Starting server on %s", cfg.addr)
